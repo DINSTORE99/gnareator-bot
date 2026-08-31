@@ -1,0 +1,59 @@
+{
+
+  "name": "StoreBotz",
+
+  "version": "7.0.0",
+
+  "description": "WhatsApp Bot using Baileys",
+
+  "main": "index.js",
+
+  "scripts": {
+
+    "start": "node index.js"
+
+  },
+
+  "dependencies": {
+
+   "@hapi/boom": "^10.0.0",
+
+    "baileys": "npm:@yudzxml/baileys@latest",
+
+    "axios": "^0.24.0",
+
+    "chalk": "^4.1.2",
+
+    "child_process": "^1.0.2",
+
+    "file-type": "^16.5.3",
+
+    "fs": "^0.0.1-security",
+
+    "jimp": "^1.6.1",
+
+    "link-preview-js": "^3.1.0",
+
+    "moment-timezone": "^0.5.34",
+
+    "node-upload-images": "^1.0.1",
+
+    "node-fetch": "^3.3.2",        
+
+    "canvas": "^2.11.2",
+
+    "os": "^0.1.2",
+
+    "path": "^0.12.7",
+
+    "pino": "^8.0.0",
+
+    "readline": "^1.3.0",
+
+    "util": "^0.12.5",
+
+    "wa-sticker-formatter": "^4.4.4"
+
+  }
+
+}
