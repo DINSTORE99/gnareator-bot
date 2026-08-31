@@ -1,365 +1,550 @@
-const box = document.getElementById("cases");
-const status = document.getElementById("status");
+const $ = (id) => document.getElementById(id);
 
-const searchInput = document.getElementById("search");
-const selectAllButton = document.getElementById("all");
-const clearButton = document.getElementById("none");
-const createButton = document.getElementById("create");
+let casesData = [];
 
-let caseData = [];
-
-
-/* ==========================================
-   LOAD CASE
-========================================== */
+/*
+ * =========================
+ * LOAD CASE
+ * =========================
+ */
 
 async function init() {
-    try {
-        const response = await fetch("/case.json");
+  const response = await fetch("/case.json");
 
-        if (!response.ok) {
-            throw new Error("case.json tidak ditemukan.");
-        }
+  if (!response.ok) {
+    throw new Error("case.json tidak ditemukan.");
+  }
 
-        caseData = await response.json();
+  casesData = await response.json();
 
-        renderCases(caseData);
-        updateSelectedCount();
-
-    } catch (error) {
-        console.error(error);
-
-        status.textContent = "❌ Gagal memuat daftar case.";
-    }
+  renderCases(casesData);
 }
 
 
-/* ==========================================
-   RENDER CASE
-========================================== */
+/*
+ * =========================
+ * ESCAPE HTML
+ * =========================
+ */
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]
+  );
+}
+
+
+/*
+ * =========================
+ * RENDER CASE
+ * =========================
+ */
 
 function renderCases(list) {
+  const container = $("cases");
 
-    if (!list.length) {
-        box.innerHTML = `
-            <div class="empty">
-                Tidak ada case yang tersedia.
-            </div>
-        `;
+  if (!list.length) {
+    container.innerHTML = `
+      <div class="empty">
+        📦 Belum ada case / fitur.
+      </div>
+    `;
 
-        return;
-    }
+    return;
+  }
 
-    box.innerHTML = list.map(item => {
+  container.innerHTML = list
+    .map((item) => {
+      const aliases =
+        Array.isArray(item.aliases) && item.aliases.length
+          ? ` • alias: ${item.aliases
+              .map(escapeHTML)
+              .join(", ")}`
+          : "";
 
-        const aliases = Array.isArray(item.aliases)
-            ? item.aliases
-            : [];
+      return `
+        <label
+          class="case"
+          data-id="${escapeHTML(item.id)}"
+          data-name="${escapeHTML(item.name)}"
+        >
 
-        return `
-            <label
-                class="case"
-                data-id="${escapeHTML(item.id)}"
-            >
+          <input
+            type="checkbox"
+            value="${escapeHTML(item.id)}"
+          >
 
-                <input
-                    type="checkbox"
-                    value="${escapeHTML(item.id)}"
-                >
+          <div class="case-info">
 
-                <div class="case-info">
+            <strong>
+              .${escapeHTML(item.name)}
+            </strong>
 
-                    <strong>
-                        .${escapeHTML(item.name)}
-                    </strong>
+            <small>
+              ${escapeHTML(item.category || "Other")}
+              ${aliases}
+            </small>
 
-                    <small>
-                        ${escapeHTML(item.category)}
+          </div>
 
-                        ${
-                            aliases.length
-                                ? ` • alias: ${aliases
-                                    .map(escapeHTML)
-                                    .join(", ")}`
-                                : ""
-                        }
-                    </small>
-
-                </div>
-
-            </label>
-        `;
-
-    }).join("");
-
-    updateSelectedCount();
+        </label>
+      `;
+    })
+    .join("");
 }
 
 
-/* ==========================================
-   SEARCH CASE
-========================================== */
+/*
+ * =========================
+ * SEARCH CASE
+ * =========================
+ */
 
-searchInput.addEventListener("input", event => {
+$("search").addEventListener(
+  "input",
+  (event) => {
 
-    const query = event.target.value
-        .toLowerCase()
-        .trim();
+    const query =
+      event.target.value
+        .trim()
+        .toLowerCase();
 
-    document.querySelectorAll(".case").forEach(item => {
+    document
+      .querySelectorAll(".case")
+      .forEach((item) => {
 
-        const id = item.dataset.id.toLowerCase();
+        const text =
+          item.innerText.toLowerCase();
 
-        item.classList.toggle(
-            "hidden",
-            query !== "" && !id.includes(query)
+        item.style.display =
+          !query || text.includes(query)
+            ? "flex"
+            : "none";
+      });
+  }
+);
+
+
+/*
+ * =========================
+ * PILIH SEMUA
+ * =========================
+ */
+
+$("all").addEventListener(
+  "click",
+  () => {
+
+    document
+      .querySelectorAll(
+        ".case:not([style*='display: none']) input"
+      )
+      .forEach((checkbox) => {
+        checkbox.checked = true;
+      });
+  }
+);
+
+
+/*
+ * =========================
+ * KOSONGKAN
+ * =========================
+ */
+
+$("none").addEventListener(
+  "click",
+  () => {
+
+    document
+      .querySelectorAll(".case input")
+      .forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+  }
+);
+
+
+/*
+ * =========================
+ * PREVIEW FOTO
+ * =========================
+ */
+
+$("photo").addEventListener(
+  "change",
+  (event) => {
+
+    const file =
+      event.target.files[0];
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/webp"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+
+      event.target.value = "";
+
+      $("photoName").textContent =
+        "❌ Format foto harus PNG, JPG, atau WEBP";
+
+      $("previewImage").style.display =
+        "none";
+
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+
+      event.target.value = "";
+
+      $("photoName").textContent =
+        "❌ Foto maksimal 3 MB";
+
+      $("previewImage").style.display =
+        "none";
+
+      return;
+    }
+
+    $("photoName").textContent =
+      `✅ ${file.name}`;
+
+    const url =
+      URL.createObjectURL(file);
+
+    $("previewImage").src = url;
+
+    $("previewImage").style.display =
+      "block";
+  }
+);
+
+
+/*
+ * =========================
+ * FILE → BASE64
+ * =========================
+ */
+
+function fileToBase64(file) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const reader =
+        new FileReader();
+
+      reader.onload = () => {
+
+        const result =
+          String(reader.result);
+
+        resolve(
+          result.includes(",")
+            ? result.split(",")[1]
+            : result
         );
+      };
 
-    });
+      reader.onerror = () => {
+        reject(
+          new Error(
+            "Gagal membaca foto."
+          )
+        );
+      };
 
-});
-
-
-/* ==========================================
-   PILIH SEMUA
-========================================== */
-
-selectAllButton.addEventListener("click", () => {
-
-    document
-        .querySelectorAll(".case:not(.hidden) input")
-        .forEach(input => {
-            input.checked = true;
-        });
-
-    updateSelectedCount();
-});
-
-
-/* ==========================================
-   KOSONGKAN
-========================================== */
-
-clearButton.addEventListener("click", () => {
-
-    document
-        .querySelectorAll(".case input")
-        .forEach(input => {
-            input.checked = false;
-        });
-
-    updateSelectedCount();
-});
-
-
-/* ==========================================
-   UPDATE JUMLAH CASE
-========================================== */
-
-box.addEventListener("change", event => {
-
-    if (event.target.type === "checkbox") {
-        updateSelectedCount();
+      reader.readAsDataURL(file);
     }
-
-});
-
-
-function updateSelectedCount() {
-
-    const total = document.querySelectorAll(
-        ".case input:checked"
-    ).length;
-
-    const text = total === 0
-        ? "Belum ada case dipilih."
-        : `${total} case dipilih.`;
-
-    status.dataset.selected = text;
+  );
 }
 
 
-/* ==========================================
-   CREATE BOT
-========================================== */
+/*
+ * =========================
+ * SLUG NAMA FILE
+ * =========================
+ */
 
-createButton.addEventListener("click", async () => {
+function createSlug(value) {
 
-    const name = document
-        .getElementById("name")
-        .value
-        .trim();
-
-    const author = document
-        .getElementById("author")
-        .value
-        .trim();
-
-    const category = document
-        .getElementById("category")
-        .value;
-
-    const prefix =
-        document
-            .getElementById("prefix")
-            .value
-            .trim() || ".";
+  return String(value || "bot")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "bot";
+}
 
 
-    /* VALIDASI */
+/*
+ * =========================
+ * CREATE BOT
+ * =========================
+ */
 
-    if (!name) {
-        status.textContent = "❌ Nama bot wajib diisi.";
-        return;
-    }
+$("create").addEventListener(
+  "click",
+  async () => {
 
-    if (!author) {
-        status.textContent = "❌ Nama pembuat wajib diisi.";
-        return;
-    }
+    const button =
+      $("create");
 
+    const status =
+      $("status");
 
-    /* AMBIL CASE */
-
-    const selectedCases = [
-        ...document.querySelectorAll(
-            ".case input:checked"
-        )
-    ].map(input => input.value);
-
-
-    /* PAYLOAD */
+    /*
+     * Ambil konfigurasi
+     */
 
     const payload = {
-        name,
-        author,
-        category,
-        prefix,
-        cases: selectedCases
+      name: $("name").value.trim(),
+
+      author:
+        $("author").value.trim(),
+
+      developer:
+        $("developer").value.trim(),
+
+      owner:
+        $("owner").value.trim(),
+
+      pairingNumber:
+        $("pairingNumber").value.trim(),
+
+      contact:
+        $("contact").value.trim(),
+
+      category:
+        $("category").value.trim(),
+
+      prefix:
+        $("prefix").value.trim(),
+
+      cases: [
+        ...document.querySelectorAll(
+          ".case input:checked"
+        )
+      ].map(
+        (checkbox) => checkbox.value
+      )
     };
 
 
-    /* LOADING */
+    /*
+     * VALIDASI
+     */
 
-    createButton.disabled = true;
+    if (!payload.name) {
 
-    createButton.textContent =
-        "⏳ SEDANG MEMBUAT BOT...";
+      status.textContent =
+        "❌ Nama bot wajib diisi.";
+
+      $("name").focus();
+
+      return;
+    }
+
+    if (!payload.author) {
+
+      status.textContent =
+        "❌ Nama pembuat wajib diisi.";
+
+      $("author").focus();
+
+      return;
+    }
+
+    if (!payload.pairingNumber) {
+
+      status.textContent =
+        "❌ Nomor pairing wajib diisi.";
+
+      $("pairingNumber").focus();
+
+      return;
+    }
+
+
+    /*
+     * Validasi nomor
+     */
+
+    const pairing =
+      payload.pairingNumber
+        .replace(/\D/g, "");
+
+    if (pairing.length < 10) {
+
+      status.textContent =
+        "❌ Nomor pairing tidak valid.";
+
+      $("pairingNumber").focus();
+
+      return;
+    }
+
+
+    /*
+     * Foto
+     */
+
+    const photo =
+      $("photo").files[0];
+
+    if (photo) {
+
+      if (photo.size > 3 * 1024 * 1024) {
+
+        status.textContent =
+          "❌ Foto maksimal 3 MB.";
+
+        return;
+      }
+
+      payload.photo = {
+        name: photo.name,
+        type: photo.type,
+        data: await fileToBase64(photo)
+      };
+    }
+
+
+    /*
+     * CREATE
+     */
+
+    button.disabled = true;
 
     status.textContent =
-        `Membuat bot dengan ${selectedCases.length} case...`;
+      `⏳ Membuat bot dengan ${payload.cases.length} case...`;
 
 
     try {
 
-        const response = await fetch(
-            "/api/generate",
-            {
-                method: "POST",
+      const response =
+        await fetch(
+          "/api/generate",
+          {
+            method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
 
-                body: JSON.stringify(payload)
-            }
+            body:
+              JSON.stringify(payload)
+          }
         );
 
 
-        /* CEK ERROR */
+      /*
+       * Error dari API
+       */
 
-        if (!response.ok) {
+      if (!response.ok) {
 
-            let message =
-                "Gagal membuat bot.";
+        let message =
+          "Gagal membuat bot.";
 
-            try {
+        try {
 
-                const error =
-                    await response.json();
+          const error =
+            await response.json();
 
-                message =
-                    error.error || message;
+          message =
+            error.error ||
+            message;
 
-            } catch (_) {}
+        } catch {}
 
-            throw new Error(message);
-        }
-
-
-        /* DOWNLOAD ZIP */
-
-        const blob =
-            await response.blob();
-
-        const url =
-            URL.createObjectURL(blob);
+        throw new Error(message);
+      }
 
 
-        const safeName =
-            name
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-")
-                .replace(/^-+|-+$/g, "")
-                || "bot";
+      /*
+       * Download ZIP
+       */
+
+      const blob =
+        await response.blob();
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+
+      link.download =
+        `${createSlug(payload.name)}.zip`;
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
+
+      setTimeout(
+        () => URL.revokeObjectURL(url),
+        1000
+      );
 
 
-        const link =
-            document.createElement("a");
+      /*
+       * SUCCESS
+       */
 
-        link.href = url;
-
-        link.download =
-            `${safeName}.zip`;
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-
-        URL.revokeObjectURL(url);
-
-
-        status.textContent =
-            `✅ Bot berhasil dibuat dengan ${selectedCases.length} case.`;
+      status.textContent =
+        `✅ Bot berhasil dibuat! ${payload.cases.length} case dimasukkan.`;
 
     } catch (error) {
 
-        console.error(error);
+      console.error(error);
 
-        status.textContent =
-            `❌ ${error.message}`;
+      status.textContent =
+        `❌ ${error.message || "Gagal membuat bot."}`;
 
     } finally {
 
-        createButton.disabled = false;
-
-        createButton.textContent =
-            "🚀 CREATE BOT & DOWNLOAD";
-
+      button.disabled = false;
     }
+  }
+);
 
+
+/*
+ * =========================
+ * START
+ * =========================
+ */
+
+init().catch((error) => {
+
+  console.error(error);
+
+  $("cases").innerHTML = `
+    <div class="empty">
+      ❌ Gagal memuat case.
+    </div>
+  `;
+
+  $("status").textContent =
+    `❌ ${error.message}`;
 });
-
-
-/* ==========================================
-   ESCAPE HTML
-========================================== */
-
-function escapeHTML(value) {
-
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-
-/* ==========================================
-   START
-========================================== */
-
-init();
