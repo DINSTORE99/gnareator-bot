@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bot Script Generator</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="brand"><span>⚡</span> BOT SCRIPT GENERATOR</div>
+    <p class="sub">Buat project bot siap download dari template.</p>
+
+    <form id="form">
+      <label>Nama Bot / Script</label>
+      <input id="name" placeholder="Contoh: DIN BOT" required>
+
+      <label>Nama Pembuat</label>
+      <input id="author" placeholder="Contoh: DIN STORE" required>
+
+      <label>Kategori Script</label>
+      <select id="category">
+        <option>Utility</option>
+        <option>Store</option>
+        <option>Downloader</option>
+        <option>AI</option>
+        <option>Group Management</option>
+        <option>Other</option>
+      </select>
+
+      <label>Platform Bot</label>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="platform" value="whatsapp" checked><span>💬 WhatsApp</span></label>
+        <label class="choice"><input type="radio" name="platform" value="telegram"><span>✈️ Telegram</span></label>
+      </div>
+
+      <label>Bahasa Pemrograman</label>
+      <select id="language">
+        <option value="nodejs">Node.js</option>
+      </select>
+
+      <button id="btn" type="submit">🚀 CREATE BOT</button>
+      <div id="status"></div>
+    </form>
+  </div>
+</div>
+<script src="/script.js"></script>
+</body>
+</html>
