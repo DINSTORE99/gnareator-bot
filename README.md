@@ -1,17 +1,1 @@
-# Vercel Bot Script Generator
-
-Generator project bot WhatsApp / Telegram berbasis Node.js yang dapat di-deploy ke Vercel.
-
-## GitHub
-1. Buat repository baru di GitHub.
-2. Upload seluruh isi folder ini.
-3. Pastikan `package.json`, `vercel.json`, `api/`, dan `public/` berada di root repository.
-
-## Vercel
-Import repository tersebut ke Vercel.
-Vercel akan menjalankan API `/api/generate`.
-
-Tidak perlu VPS untuk website generator.
-
-## Catatan
-Website ini menghasilkan ZIP template. Bot WhatsApp/Telegram hasil generate tetap dijalankan di VPS/hosting Node.js, bukan sebagai proses permanen di Vercel.
+# NDZ Bot Generator\n\nUpload repository ini ke GitHub lalu Import ke Vercel.\n\n- `template/NDZ` = template bot dasar.\n- `fitur/` = case yang bisa dipilih.\n- `public/case.json` = daftar case yang tampil di website.\n- Case tercentang saja dimasukkan ke `message.js` hasil ZIP.\n- Jangan masukkan token/API key pribadi ke GitHub.\n
