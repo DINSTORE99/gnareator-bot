@@ -3,468 +3,227 @@ const path = require("path");
 const archiver = require("archiver");
 
 const ROOT = process.cwd();
+const BASE = path.join(ROOT, "template", "NDZ");
+const FEATURES = path.join(ROOT, "fitur");
 
-const BASE = path.join(
-  ROOT,
-  "template",
-  "NDZ"
-);
-
-const FEATURES = path.join(
-  ROOT,
-  "fitur"
-);
-
-
-/*
- * =========================
- * SANITIZE
- * =========================
- */
-
-function clean(value) {
-  return String(value ?? "")
-    .replace(/[^\w .:@/+()_-]/g, "")
+function clean(value, fallback = "") {
+  return String(value ?? fallback)
     .trim()
-    .slice(0, 100);
+    .slice(0, 150);
 }
-
 
 function slug(value) {
   return (
-    clean(value)
+    clean(value, "bot")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80) ||
-    "bot"
+      .replace(/^-+|-+$/g, "") || "bot"
   );
 }
 
+function walk(dir, rel, output) {
+  if (!fs.existsSync(dir)) return;
 
-/*
- * =========================
- * WALK TEMPLATE
- * =========================
- */
-
-function walk(directory, relative, output) {
-
-  if (!fs.existsSync(directory)) {
-    return;
-  }
-
-  for (
-    const entry of fs.readdirSync(
-      directory,
-      {
-        withFileTypes: true
-      }
-    )
-  ) {
-
-    /*
-     * Jangan masukkan folder session,
-     * node_modules atau git.
-     */
-
+  for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
     if (
-      [
-        "node_modules",
-        ".git",
-        "session"
-      ].includes(entry.name)
+      ["node_modules", ".git", "session"].includes(item.name)
     ) {
       continue;
     }
 
-    const filePath =
-      path.join(
-        directory,
-        entry.name
-      );
+    const full = path.join(dir, item.name);
+    const relative = path.join(rel, item.name);
 
-    const relativePath =
-      path.join(
-        relative,
-        entry.name
-      );
-
-    if (entry.isDirectory()) {
-
-      walk(
-        filePath,
-        relativePath,
-        output
-      );
-
+    if (item.isDirectory()) {
+      walk(full, relative, output);
     } else {
-
       output.push({
-        file: filePath,
-        relative: relativePath
+        file: full,
+        relative
       });
-
     }
   }
 }
 
-
-/*
- * =========================
- * LOAD FEATURE
- * =========================
- */
-
 function getFeatures(ids) {
-
   let result = "";
 
   for (const id of ids) {
-
     const safeId = String(id)
       .toLowerCase()
       .replace(/[^a-z0-9_-]/g, "");
 
-    if (!safeId) {
-      continue;
+    if (!safeId) continue;
+
+    const file = path.join(FEATURES, `${safeId}.js`);
+
+    if (fs.existsSync(file)) {
+      result += "\n" + fs.readFileSync(file, "utf8") + "\n";
     }
-
-    const filePath =
-      path.join(
-        FEATURES,
-        `${safeId}.js`
-      );
-
-    if (!fs.existsSync(filePath)) {
-      continue;
-    }
-
-    result +=
-      "\n" +
-      fs.readFileSync(
-        filePath,
-        "utf8"
-      ) +
-      "\n";
   }
 
   return result;
 }
 
+function insertCases(source, ids) {
+  const switchStart = source.indexOf("switch(command)");
 
-/*
- * =========================
- * INSERT CASE
- * =========================
- */
-
-function buildMessage(
-  source,
-  ids
-) {
-
-  const switchIndex =
-    source.indexOf(
-      "switch (command)"
-    ) !== -1
-      ? source.indexOf(
-          "switch (command)"
-        )
-      : source.indexOf(
-          "switch(command)"
-        );
-
-  /*
-   * Kalau template belum punya switch,
-   * jangan rusak file.
-   */
-
-  if (switchIndex === -1) {
+  if (switchStart === -1) {
     return source;
   }
 
-  const openBrace =
-    source.indexOf(
-      "{",
-      switchIndex
-    );
+  const openBrace = source.indexOf("{", switchStart);
 
   if (openBrace === -1) {
     return source;
   }
 
   let depth = 0;
-  let endBrace = -1;
+  let closeBrace = -1;
 
-  for (
-    let i = openBrace;
-    i < source.length;
-    i++
-  ) {
-
+  for (let i = openBrace; i < source.length; i++) {
     if (source[i] === "{") {
       depth++;
     }
 
     if (source[i] === "}") {
-
       depth--;
 
       if (depth === 0) {
-        endBrace = i;
+        closeBrace = i;
         break;
       }
     }
   }
 
-  if (endBrace === -1) {
+  if (closeBrace === -1) {
     return source;
   }
 
-  const defaultIndex =
-    source.indexOf(
-      "default:",
-      openBrace
-    );
+  const defaultPos = source.indexOf(
+    "default:",
+    openBrace
+  );
 
-  if (defaultIndex === -1) {
+  if (defaultPos === -1 || defaultPos > closeBrace) {
     return source;
   }
 
-  const selected =
-    getFeatures(ids);
+  const cases = getFeatures(ids);
 
   return (
-    source.slice(
-      0,
-      openBrace + 1
-    ) +
-
+    source.slice(0, openBrace + 1) +
     "\n" +
-
-    selected +
-
+    cases +
     "\n" +
-
-    source.slice(
-      defaultIndex,
-      endBrace
-    ) +
-
-    "\n" +
-
-    source.slice(
-      endBrace
-    )
+    source.slice(defaultPos, closeBrace) +
+    source.slice(closeBrace)
   );
 }
 
-
-/*
- * =========================
- * PHOTO EXTENSION
- * =========================
- */
-
-function getImageExtension(type) {
-
-  const extensions = {
-    "image/png": "png",
-    "image/jpeg": "jpg",
-    "image/webp": "webp"
-  };
-
-  return extensions[type] || null;
-}
-
-
-/*
- * =========================
- * GENERATE SETTING
- * =========================
- */
-
-function createSetting(body) {
-
-  const owner = body.owner
-    ? [
-        clean(body.owner)
-      ]
+function createSetting(data, imagePath) {
+  const owner = data.owner
+    ? String(data.owner)
+        .split(/[,\s]+/)
+        .map(x => x.replace(/\D/g, ""))
+        .filter(Boolean)
     : [];
 
-  const photoExtension =
-    body.photo
-      ? getImageExtension(
-          body.photo.type
-        )
-      : null;
-
-  const image =
-    photoExtension
-      ? `./media/bot-image.${photoExtension}`
-      : "";
-
   return `module.exports = {
-  botname: ${JSON.stringify(
-    clean(body.name)
-  )},
-
-  author: ${JSON.stringify(
-    clean(body.author)
-  )},
-
-  developer: ${JSON.stringify(
-    clean(body.developer)
-  )},
-
-  owner: ${JSON.stringify(
-    owner
-  )},
-
-  pairingNumber: ${JSON.stringify(
-    clean(body.pairingNumber)
-  )},
-
-  contact: ${JSON.stringify(
-    clean(body.contact)
-  )},
-
-  category: ${JSON.stringify(
-    clean(body.category)
-  )},
-
-  prefix: ${JSON.stringify(
-    clean(body.prefix)
-  )},
-
-  image: ${JSON.stringify(
-    image
-  )}
+  botname: ${JSON.stringify(data.name)},
+  author: ${JSON.stringify(data.author)},
+  developer: ${JSON.stringify(data.developer)},
+  owner: ${JSON.stringify(owner)},
+  pairingNumber: ${JSON.stringify(data.pairingNumber)},
+  contact: ${JSON.stringify(data.contact)},
+  category: ${JSON.stringify(data.category)},
+  prefix: ${JSON.stringify(data.prefix)},
+  image: ${JSON.stringify(imagePath)}
 };
 `;
 }
 
-
-/*
- * =========================
- * API
- * =========================
- */
-
-module.exports = async function (
-  req,
-  res
-) {
-
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
-
-    return res
-      .status(405)
-      .json({
-        error:
-          "Method not allowed"
-      });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
-
   try {
+    const body = req.body || {};
 
-    const body =
-      req.body || {};
+    const name = clean(body.name, "BOT BARU");
+    const author = clean(body.author, "Unknown");
+    const developer = clean(
+      body.developer,
+      author
+    );
 
+    const pairingNumber = clean(
+      body.pairingNumber
+    ).replace(/\D/g, "");
 
-    /*
-     * =====================
-     * DATA WEBSITE
-     * =====================
-     */
+    const owner = clean(body.owner);
+    const contact = clean(body.contact);
 
-    const name =
-      clean(body.name);
+    const category = clean(
+      body.category,
+      "WhatsApp Bot"
+    );
 
-    const author =
-      clean(body.author);
-
-    const developer =
-      clean(body.developer);
-
-    const pairingNumber =
-      clean(
-        body.pairingNumber
-      );
-
-
-    /*
-     * =====================
-     * VALIDASI
-     * =====================
-     */
-
-    if (!name) {
-
-      throw new Error(
-        "Nama bot wajib diisi."
-      );
-    }
-
-    if (!author) {
-
-      throw new Error(
-        "Nama pembuat wajib diisi."
-      );
-    }
+    const prefix =
+      clean(body.prefix, ".") || ".";
 
     if (!pairingNumber) {
-
-      throw new Error(
-        "Nomor pairing wajib diisi."
-      );
+      return res.status(400).json({
+        error: "Nomor pairing wajib diisi."
+      });
     }
 
+    const cases = [
+      ...new Set(
+        Array.isArray(body.cases)
+          ? body.cases
+              .map(x =>
+                String(x)
+                  .toLowerCase()
+                  .replace(/[^a-z0-9_-]/g, "")
+              )
+              .filter(Boolean)
+          : []
+      )
+    ];
 
-    /*
-     * =====================
-     * CASE
-     * =====================
-     */
+    const folder = slug(name);
 
-    const cases =
-      Array.isArray(body.cases)
-        ? [
-            ...new Set(
-              body.cases
-                .map(
-                  value =>
-                    String(value)
-                      .toLowerCase()
-                      .replace(
-                        /[^a-z0-9_-]/g,
-                        ""
-                      )
-                )
-                .filter(Boolean)
-            )
-          ]
-        : [];
+    const photo = body.photo;
 
+    let imagePath = "";
 
-    /*
-     * =====================
-     * ZIP
-     * =====================
-     */
+    if (
+      photo &&
+      photo.data &&
+      photo.type
+    ) {
+      const allowed = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/webp": "webp"
+      };
 
-    const folder =
-      slug(name);
+      const ext = allowed[photo.type];
 
-    const zip =
-      archiver("zip", {
-        zlib: {
-          level: 9
-        }
-      });
+      if (ext) {
+        imagePath = `./media/bot-image.${ext}`;
+      }
+    }
 
+    const zip = archiver("zip", {
+      zlib: {
+        level: 9
+      }
+    });
 
     res.setHeader(
       "Content-Type",
@@ -476,177 +235,123 @@ module.exports = async function (
       `attachment; filename="${folder}.zip"`
     );
 
-
     zip.pipe(res);
-
-
-    /*
-     * =====================
-     * TEMPLATE FILES
-     * =====================
-     */
 
     const files = [];
 
-    walk(
-      BASE,
-      "",
-      files
-    );
+    walk(BASE, "", files);
 
-
-    for (
-      const item of files
-    ) {
-
-      let content =
-        fs.readFileSync(
-          item.file
-        );
-
+    for (const item of files) {
+      let content = fs.readFileSync(
+        item.file
+      );
 
       /*
        * MESSAGE.JS
+       * Case yang dicentang di website
+       * dimasukkan otomatis.
        */
-
-      if (
-        item.relative ===
-        "message.js"
-      ) {
-
-        content =
-          Buffer.from(
-            buildMessage(
-              content.toString(),
-              cases
-            )
-          );
+      if (item.relative === "message.js") {
+        content = Buffer.from(
+          insertCases(
+            content.toString(),
+            cases
+          )
+        );
       }
-
 
       /*
        * SETTING.JS
+       * Dibuat ulang berdasarkan form website.
        */
-
-      if (
-        item.relative ===
-        "setting.js"
-      ) {
-
-        content =
-          Buffer.from(
-            createSetting(
-              body
-            )
-          );
+      if (item.relative === "setting.js") {
+        content = Buffer.from(
+          createSetting(
+            {
+              name,
+              author,
+              developer,
+              owner,
+              pairingNumber,
+              contact,
+              category,
+              prefix
+            },
+            imagePath
+          )
+        );
       }
-
 
       /*
        * PACKAGE.JSON
        */
-
-      if (
-        item.relative ===
-        "package.json"
-      ) {
-
+      if (item.relative === "package.json") {
         try {
+          const pkg = JSON.parse(
+            content.toString()
+          );
 
-          const packageData =
-            JSON.parse(
-              content.toString()
-            );
+          pkg.name = folder;
+          pkg.description =
+            `${name} - ${category}`;
 
-          packageData.name =
-            folder;
-
-          packageData.description =
-            `${name} - ${
-              clean(
-                body.category
-              )
-            }`;
-
-          content =
-            Buffer.from(
-              JSON.stringify(
-                packageData,
-                null,
-                2
-              ) + "\n"
-            );
-
+          content = Buffer.from(
+            JSON.stringify(pkg, null, 2) +
+              "\n"
+          );
         } catch {}
       }
 
-
-      zip.append(
-        content,
-        {
-          name:
-            `${folder}/${item.relative}`
-        }
-      );
+      zip.append(content, {
+        name: `${folder}/${item.relative}`
+      });
     }
 
-
     /*
-     * =====================
      * FOTO BOT
-     * =====================
      */
-
     if (
-      body.photo &&
-      body.photo.data &&
-      body.photo.type
+      photo &&
+      photo.data &&
+      photo.type
     ) {
+      const allowed = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/webp": "webp"
+      };
 
-      const extension =
-        getImageExtension(
-          body.photo.type
+      const ext = allowed[photo.type];
+
+      if (ext) {
+        const imageBuffer = Buffer.from(
+          photo.data,
+          "base64"
         );
 
-      if (extension) {
-
-        const imageBuffer =
-          Buffer.from(
-            body.photo.data,
-            "base64"
-          );
-
-        zip.append(
-          imageBuffer,
-          {
-            name:
-              `${folder}/media/bot-image.${extension}`
-          }
-        );
+        zip.append(imageBuffer, {
+          name:
+            `${folder}/media/bot-image.${ext}`
+        });
       }
     }
 
-
     /*
-     * =====================
      * INFO GENERATOR
-     * =====================
      */
-
     zip.append(
       `# ${name}
 
 Pembuat: ${author}
 Developer: ${developer}
-Kategori: ${clean(body.category)}
-Prefix: ${clean(body.prefix)}
-Case: ${
-        cases.length
-          ? cases.join(", ")
-          : "Tidak ada"
-      }
+Kategori: ${category}
+Prefix: ${prefix}
+Owner: ${owner || "-"}
+Pairing Number: ${pairingNumber}
+Kontak Developer: ${contact || "-"}
+Case: ${cases.join(", ") || "Tidak ada"}
 
-Generated by DIN STORE.
+Generated by NDZ Bot Generator.
 `,
       {
         name:
@@ -654,31 +359,17 @@ Generated by DIN STORE.
       }
     );
 
-
-    /*
-     * =====================
-     * FINALIZE
-     * =====================
-     */
-
     await zip.finalize();
 
   } catch (error) {
-
-    console.error(
-      "GENERATOR ERROR:",
-      error
-    );
+    console.error(error);
 
     if (!res.headersSent) {
-
-      return res
-        .status(500)
-        .json({
-          error:
-            error.message ||
-            "Gagal membuat bot."
-        });
+      return res.status(500).json({
+        error:
+          error.message ||
+          "Gagal membuat bot."
+      });
     }
   }
 };
