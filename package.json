@@ -1,10 +1,7 @@
 {
-  "name": "vercel-bot-script-generator",
+  "name": "ndz-bot-generator",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "vercel dev"
-  },
   "dependencies": {
     "archiver": "^7.0.1"
   }
