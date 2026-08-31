@@ -1,0 +1,314 @@
+/* ================================
+   RESET
+================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+
+/* ================================
+   BODY
+================================ */
+
+body {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: #07111f;
+    color: #e5edf7;
+
+    font-family: Arial, sans-serif;
+}
+
+
+/* ================================
+   CONTAINER
+================================ */
+
+.wrap {
+    width: 100%;
+    max-width: 560px;
+}
+
+
+/* ================================
+   CARD
+================================ */
+
+.card {
+    padding: 28px;
+
+    background: #0d1a2b;
+
+    border: 1px solid #20344d;
+    border-radius: 22px;
+
+    box-shadow: 0 20px 60px #0008;
+}
+
+
+/* ================================
+   BRAND
+================================ */
+
+.brand {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.brand span {
+    color: #36d399;
+}
+
+
+/* ================================
+   DESCRIPTION
+================================ */
+
+.sub {
+    margin: 8px 0 25px;
+
+    color: #8ea2b9;
+
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/* ================================
+   FORM LABEL
+================================ */
+
+label {
+    display: block;
+
+    margin: 16px 0 8px;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+/* ================================
+   INPUT & SELECT
+================================ */
+
+input,
+select {
+    width: 100%;
+
+    padding: 14px;
+
+    background: #081321;
+    color: #ffffff;
+
+    border: 1px solid #29405b;
+    border-radius: 12px;
+
+    outline: none;
+
+    font-size: 14px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+input::placeholder {
+    color: #64748b;
+}
+
+input:focus,
+select:focus {
+    border-color: #36d399;
+
+    box-shadow: 0 0 0 3px rgba(54, 211, 153, 0.08);
+}
+
+
+/* ================================
+   PLATFORM CHOICES
+================================ */
+
+.choices {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 10px;
+}
+
+
+/* Hide radio button */
+
+.choice input {
+    display: none;
+}
+
+
+/* Choice Card */
+
+.choice {
+    margin: 0;
+}
+
+.choice span {
+    display: block;
+
+    padding: 14px;
+
+    background: #081321;
+
+    color: #a9bad0;
+
+    border: 1px solid #29405b;
+    border-radius: 12px;
+
+    text-align: center;
+
+    cursor: pointer;
+
+    transition:
+        0.2s ease;
+}
+
+
+/* Hover */
+
+.choice span:hover {
+    border-color: #3d5875;
+
+    transform: translateY(-1px);
+}
+
+
+/* Selected */
+
+.choice input:checked + span {
+    background: #0d2a29;
+
+    color: #6ee7b7;
+
+    border-color: #36d399;
+
+    box-shadow:
+        0 0 0 1px rgba(54, 211, 153, 0.1),
+        0 8px 25px rgba(54, 211, 153, 0.08);
+}
+
+
+/* ================================
+   CREATE BUTTON
+================================ */
+
+button {
+    width: 100%;
+
+    margin-top: 24px;
+
+    padding: 15px;
+
+    background: #36d399;
+    color: #04110c;
+
+    border: 0;
+    border-radius: 12px;
+
+    font-size: 15px;
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+}
+
+
+/* Hover */
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 30px rgba(54, 211, 153, 0.18);
+}
+
+
+/* Click */
+
+button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+
+/* Disabled / Loading */
+
+button:disabled {
+    opacity: 0.6;
+
+    cursor: wait;
+}
+
+
+/* ================================
+   STATUS
+================================ */
+
+#status {
+    margin-top: 14px;
+
+    color: #9fb2c8;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    text-align: center;
+
+    min-height: 20px;
+}
+
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width: 480px) {
+
+    body {
+        padding: 14px;
+    }
+
+    .card {
+        padding: 21px;
+
+        border-radius: 18px;
+    }
+
+    .brand {
+        font-size: 19px;
+    }
+
+    .choices {
+        grid-template-columns: 1fr;
+    }
+
+    button {
+        padding: 14px;
+    }
+}
