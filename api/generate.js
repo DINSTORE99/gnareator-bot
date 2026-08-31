@@ -21,31 +21,42 @@ function slug(value) {
   );
 }
 
-function walk(dir, rel, output) {
+function walk(dir, relative, result) {
   if (!fs.existsSync(dir)) return;
 
-  for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const item of fs.readdirSync(dir, {
+    withFileTypes: true
+  })) {
     if (
-      ["node_modules", ".git", "session"].includes(item.name)
+      item.name === "node_modules" ||
+      item.name === ".git" ||
+      item.name === "session"
     ) {
       continue;
     }
 
-    const full = path.join(dir, item.name);
-    const relative = path.join(rel, item.name);
+    const fullPath = path.join(dir, item.name);
+    const relativePath = path.join(
+      relative,
+      item.name
+    );
 
     if (item.isDirectory()) {
-      walk(full, relative, output);
+      walk(
+        fullPath,
+        relativePath,
+        result
+      );
     } else {
-      output.push({
-        file: full,
-        relative
+      result.push({
+        fullPath,
+        relativePath
       });
     }
   }
 }
 
-function getFeatures(ids) {
+function getCases(ids) {
   let result = "";
 
   for (const id of ids) {
@@ -55,33 +66,45 @@ function getFeatures(ids) {
 
     if (!safeId) continue;
 
-    const file = path.join(FEATURES, `${safeId}.js`);
+    const file = path.join(
+      FEATURES,
+      safeId + ".js"
+    );
 
-    if (fs.existsSync(file)) {
-      result += "\n" + fs.readFileSync(file, "utf8") + "\n";
-    }
+    if (!fs.existsSync(file)) continue;
+
+    result +=
+      "\n" +
+      fs.readFileSync(file, "utf8") +
+      "\n";
   }
 
   return result;
 }
 
 function insertCases(source, ids) {
-  const switchStart = source.indexOf("switch(command)");
+  const switchIndex =
+    source.indexOf("switch(command)");
 
-  if (switchStart === -1) {
+  if (switchIndex === -1) {
     return source;
   }
 
-  const openBrace = source.indexOf("{", switchStart);
+  const open =
+    source.indexOf("{", switchIndex);
 
-  if (openBrace === -1) {
+  if (open === -1) {
     return source;
   }
 
   let depth = 0;
-  let closeBrace = -1;
+  let close = -1;
 
-  for (let i = openBrace; i < source.length; i++) {
+  for (
+    let i = open;
+    i < source.length;
+    i++
+  ) {
     if (source[i] === "{") {
       depth++;
     }
@@ -90,44 +113,46 @@ function insertCases(source, ids) {
       depth--;
 
       if (depth === 0) {
-        closeBrace = i;
+        close = i;
         break;
       }
     }
   }
 
-  if (closeBrace === -1) {
+  if (close === -1) {
     return source;
   }
 
-  const defaultPos = source.indexOf(
-    "default:",
-    openBrace
-  );
+  const defaultIndex =
+    source.indexOf("default:", open);
 
-  if (defaultPos === -1 || defaultPos > closeBrace) {
+  if (
+    defaultIndex === -1 ||
+    defaultIndex > close
+  ) {
     return source;
   }
-
-  const cases = getFeatures(ids);
 
   return (
-    source.slice(0, openBrace + 1) +
+    source.slice(0, open + 1) +
     "\n" +
-    cases +
+    getCases(ids) +
     "\n" +
-    source.slice(defaultPos, closeBrace) +
-    source.slice(closeBrace)
+    source.slice(
+      defaultIndex,
+      close
+    ) +
+    source.slice(close)
   );
 }
 
-function createSetting(data, imagePath) {
-  const owner = data.owner
-    ? String(data.owner)
-        .split(/[,\s]+/)
-        .map(x => x.replace(/\D/g, ""))
-        .filter(Boolean)
-    : [];
+function makeSetting(data, image) {
+  const owner = String(
+    data.owner || ""
+  )
+    .split(/[,\s]+/)
+    .map(x => x.replace(/\D/g, ""))
+    .filter(Boolean);
 
   return `module.exports = {
   botname: ${JSON.stringify(data.name)},
@@ -138,12 +163,15 @@ function createSetting(data, imagePath) {
   contact: ${JSON.stringify(data.contact)},
   category: ${JSON.stringify(data.category)},
   prefix: ${JSON.stringify(data.prefix)},
-  image: ${JSON.stringify(imagePath)}
+  image: ${JSON.stringify(image)}
 };
 `;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = async function handler(
+  req,
+  res
+) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -153,71 +181,88 @@ module.exports = async function handler(req, res) {
   try {
     const body = req.body || {};
 
-    const name = clean(body.name, "BOT BARU");
-    const author = clean(body.author, "Unknown");
-    const developer = clean(
-      body.developer,
-      author
-    );
+    const name =
+      clean(body.name) ||
+      "BOT BARU";
 
-    const pairingNumber = clean(
-      body.pairingNumber
-    ).replace(/\D/g, "");
+    const author =
+      clean(body.author) ||
+      "DINSTORE";
 
-    const owner = clean(body.owner);
-    const contact = clean(body.contact);
+    const developer =
+      clean(body.developer) ||
+      author;
 
-    const category = clean(
-      body.category,
-      "WhatsApp Bot"
-    );
+    const pairingNumber =
+      clean(body.pairingNumber)
+        .replace(/\D/g, "");
+
+    const owner =
+      clean(body.owner);
+
+    const contact =
+      clean(body.contact);
+
+    const category =
+      clean(body.category) ||
+      "WhatsApp Bot";
 
     const prefix =
-      clean(body.prefix, ".") || ".";
+      clean(body.prefix) || ".";
 
     if (!pairingNumber) {
       return res.status(400).json({
-        error: "Nomor pairing wajib diisi."
+        error:
+          "Nomor pairing wajib diisi."
       });
     }
 
-    const cases = [
+    const ids = [
       ...new Set(
-        Array.isArray(body.cases)
-          ? body.cases
-              .map(x =>
-                String(x)
-                  .toLowerCase()
-                  .replace(/[^a-z0-9_-]/g, "")
+        (
+          Array.isArray(body.cases)
+            ? body.cases
+            : []
+        )
+          .map(x =>
+            String(x)
+              .toLowerCase()
+              .replace(
+                /[^a-z0-9_-]/g,
+                ""
               )
-              .filter(Boolean)
-          : []
+          )
+          .filter(Boolean)
       )
     ];
 
-    const folder = slug(name);
-
-    const photo = body.photo;
+    /*
+     * FOTO
+     */
 
     let imagePath = "";
 
+    const imageExtensions = {
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/webp": "webp"
+    };
+
     if (
-      photo &&
-      photo.data &&
-      photo.type
+      body.photo &&
+      body.photo.data &&
+      imageExtensions[body.photo.type]
     ) {
-      const allowed = {
-        "image/png": "png",
-        "image/jpeg": "jpg",
-        "image/webp": "webp"
-      };
+      const ext =
+        imageExtensions[
+          body.photo.type
+        ];
 
-      const ext = allowed[photo.type];
-
-      if (ext) {
-        imagePath = `./media/bot-image.${ext}`;
-      }
+      imagePath =
+        `./media/bot-image.${ext}`;
     }
+
+    const folder = slug(name);
 
     const zip = archiver("zip", {
       zlib: {
@@ -239,45 +284,44 @@ module.exports = async function handler(req, res) {
 
     const files = [];
 
-    walk(BASE, "", files);
+    walk(
+      BASE,
+      "",
+      files
+    );
 
     for (const item of files) {
-      let content = fs.readFileSync(
-        item.file
-      );
+      const fileName =
+        path.basename(
+          item.relativePath
+        );
+
+      /*
+       * JANGAN AMBIL SETTING.JS TEMPLATE
+       */
+
+      if (
+        fileName === "setting.js"
+      ) {
+        continue;
+      }
+
+      let content =
+        fs.readFileSync(
+          item.fullPath
+        );
 
       /*
        * MESSAGE.JS
-       * Case yang dicentang di website
-       * dimasukkan otomatis.
        */
-      if (item.relative === "message.js") {
+
+      if (
+        fileName === "message.js"
+      ) {
         content = Buffer.from(
           insertCases(
             content.toString(),
-            cases
-          )
-        );
-      }
-
-      /*
-       * SETTING.JS
-       * Dibuat ulang berdasarkan form website.
-       */
-      if (item.relative === "setting.js") {
-        content = Buffer.from(
-          createSetting(
-            {
-              name,
-              author,
-              developer,
-              owner,
-              pairingNumber,
-              contact,
-              category,
-              prefix
-            },
-            imagePath
+            ids
           )
         );
       }
@@ -285,71 +329,112 @@ module.exports = async function handler(req, res) {
       /*
        * PACKAGE.JSON
        */
-      if (item.relative === "package.json") {
+
+      if (
+        fileName === "package.json"
+      ) {
         try {
-          const pkg = JSON.parse(
-            content.toString()
-          );
+          const pkg =
+            JSON.parse(
+              content.toString()
+            );
 
           pkg.name = folder;
+
           pkg.description =
             `${name} - ${category}`;
 
           content = Buffer.from(
-            JSON.stringify(pkg, null, 2) +
-              "\n"
+            JSON.stringify(
+              pkg,
+              null,
+              2
+            ) + "\n"
           );
         } catch {}
       }
 
-      zip.append(content, {
-        name: `${folder}/${item.relative}`
-      });
+      zip.append(
+        content,
+        {
+          name:
+            `${folder}/${item.relativePath}`
+        }
+      );
     }
+
+    /*
+     * BUAT SETTING.JS BARU
+     */
+
+    const settingCode =
+      makeSetting(
+        {
+          name,
+          author,
+          developer,
+          owner,
+          pairingNumber,
+          contact,
+          category,
+          prefix
+        },
+        imagePath
+      );
+
+    zip.append(
+      Buffer.from(settingCode),
+      {
+        name:
+          `${folder}/setting.js`
+      }
+    );
 
     /*
      * FOTO BOT
      */
+
     if (
-      photo &&
-      photo.data &&
-      photo.type
+      body.photo &&
+      body.photo.data &&
+      imageExtensions[
+        body.photo.type
+      ]
     ) {
-      const allowed = {
-        "image/png": "png",
-        "image/jpeg": "jpg",
-        "image/webp": "webp"
-      };
+      const ext =
+        imageExtensions[
+          body.photo.type
+        ];
 
-      const ext = allowed[photo.type];
-
-      if (ext) {
-        const imageBuffer = Buffer.from(
-          photo.data,
+      zip.append(
+        Buffer.from(
+          body.photo.data,
           "base64"
-        );
-
-        zip.append(imageBuffer, {
+        ),
+        {
           name:
             `${folder}/media/bot-image.${ext}`
-        });
-      }
+        }
+      );
     }
 
     /*
-     * INFO GENERATOR
+     * INFO
      */
+
     zip.append(
       `# ${name}
 
 Pembuat: ${author}
 Developer: ${developer}
-Kategori: ${category}
-Prefix: ${prefix}
 Owner: ${owner || "-"}
 Pairing Number: ${pairingNumber}
 Kontak Developer: ${contact || "-"}
-Case: ${cases.join(", ") || "Tidak ada"}
+Kategori: ${category}
+Prefix: ${prefix}
+
+Case:
+${ids.join(", ") || "Tidak ada"}
 
 Generated by NDZ Bot Generator.
 `,
@@ -362,7 +447,10 @@ Generated by NDZ Bot Generator.
     await zip.finalize();
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "GENERATOR ERROR:",
+      error
+    );
 
     if (!res.headersSent) {
       return res.status(500).json({
