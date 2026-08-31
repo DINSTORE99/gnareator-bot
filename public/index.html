@@ -1,173 +1,332 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-    <meta
-        name="description"
-        content="NDZ Bot Generator - Buat bot otomatis dengan memilih case yang diinginkan."
-    >
+  <meta
+    name="description"
+    content="NDZ Bot Generator - Buat bot WhatsApp otomatis"
+  >
 
-    <meta
-        name="theme-color"
-        content="#07111f"
-    >
+  <meta
+    name="theme-color"
+    content="#07111f"
+  >
 
-    <title>NDZ Bot Generator</title>
+  <title>NDZ Bot Generator</title>
 
-    <link rel="stylesheet" href="/style.css">
+  <link
+    rel="stylesheet"
+    href="/style.css"
+  >
 </head>
 
 <body>
 
-    <main class="container">
+  <main class="container">
 
-        <!-- HEADER -->
-        <header class="hero">
-            <div class="brand">
-                ⚡ NDZ BOT GENERATOR
-            </div>
+    <!-- HEADER -->
+    <header class="hero">
 
-            <h1>
-                Create Bot
-                <span>Otomatis</span>
-            </h1>
+      <div class="brand">
+        ⚡ NDZ BOT GENERATOR
+      </div>
 
-            <p>
-                Buat bot secara otomatis dengan memilih
-                case yang ingin dimasukkan ke dalam bot baru.
-            </p>
-        </header>
+      <h1>
+        Create Bot
+        <span>Otomatis</span>
+      </h1>
 
+      <p>
+        Buat bot WhatsApp dari template dan
+        case pilihanmu.
+      </p>
 
-        <!-- FORM -->
-        <section class="panel">
-
-            <!-- INFORMASI BOT -->
-            <div class="grid">
-
-                <label>
-                    Nama Bot
-                    <input
-                        type="text"
-                        id="name"
-                        placeholder="DIN BOT"
-                        autocomplete="off"
-                    >
-                </label>
-
-                <label>
-                    Nama Pembuat
-                    <input
-                        type="text"
-                        id="author"
-                        placeholder="DIN STORE"
-                        autocomplete="off"
-                    >
-                </label>
-
-                <label>
-                    Kategori
-                    <select id="category">
-                        <option value="WhatsApp Bot">
-                            WhatsApp Bot
-                        </option>
-
-                        <option value="Store Bot">
-                            Store Bot
-                        </option>
-
-                        <option value="Utility">
-                            Utility
-                        </option>
-
-                        <option value="Downloader">
-                            Downloader
-                        </option>
-
-                        <option value="AI">
-                            AI
-                        </option>
-                    </select>
-                </label>
-
-                <label>
-                    Prefix
-                    <input
-                        type="text"
-                        id="prefix"
-                        value="."
-                        maxlength="5"
-                        autocomplete="off"
-                    >
-                </label>
-
-            </div>
+    </header>
 
 
-            <!-- SEARCH & CONTROL -->
-            <div class="bar">
+    <!-- FORM -->
+    <section class="panel">
 
-                <input
-                    type="search"
-                    id="search"
-                    placeholder="🔎 Cari case..."
-                    autocomplete="off"
-                >
-
-                <button
-                    type="button"
-                    id="all"
-                >
-                    ☑ Pilih Semua
-                </button>
-
-                <button
-                    type="button"
-                    id="none"
-                >
-                    ☐ Kosongkan
-                </button>
-
-            </div>
+      <div class="section-title">
+        <span>⚙️</span>
+        <div>
+          <h2>Konfigurasi Bot</h2>
+          <p>Isi pengaturan bot yang ingin dibuat.</p>
+        </div>
+      </div>
 
 
-            <!-- CASE LIST -->
-            <div
-                id="cases"
-                class="cases"
+      <div class="grid">
+
+        <!-- NAMA BOT -->
+        <label>
+          Nama Bot
+
+          <input
+            id="name"
+            type="text"
+            placeholder="Masukkan nama bot"
+            autocomplete="off"
+          >
+        </label>
+
+
+        <!-- PEMBUAT -->
+        <label>
+          Nama Pembuat
+
+          <input
+            id="author"
+            type="text"
+            placeholder="Masukkan nama pembuat"
+            autocomplete="off"
+          >
+        </label>
+
+
+        <!-- DEVELOPER -->
+        <label>
+          Developer
+
+          <input
+            id="developer"
+            type="text"
+            placeholder="Masukkan nama developer"
+            autocomplete="off"
+          >
+        </label>
+
+
+        <!-- OWNER -->
+        <label>
+          Nomor Owner
+
+          <input
+            id="owner"
+            type="tel"
+            inputmode="numeric"
+            placeholder="628xxxxxxxxxx"
+            autocomplete="off"
+          >
+        </label>
+
+
+        <!-- PAIRING -->
+        <label>
+          Nomor Pairing
+
+          <input
+            id="pairingNumber"
+            type="tel"
+            inputmode="numeric"
+            placeholder="628xxxxxxxxxx"
+            autocomplete="off"
+          >
+
+          <small>
+            Nomor WhatsApp yang menerima pairing code.
+          </small>
+        </label>
+
+
+        <!-- KONTAK DEVELOPER -->
+        <label>
+          Kontak Developer
+
+          <input
+            id="contact"
+            type="tel"
+            inputmode="numeric"
+            placeholder="628xxxxxxxxxx"
+            autocomplete="off"
+          >
+        </label>
+
+
+        <!-- KATEGORI -->
+        <label>
+          Kategori Bot
+
+          <select id="category">
+
+            <option value="">
+              Pilih kategori
+            </option>
+
+            <option value="WhatsApp Bot">
+              WhatsApp Bot
+            </option>
+
+            <option value="Store Bot">
+              Store Bot
+            </option>
+
+            <option value="Utility">
+              Utility
+            </option>
+
+            <option value="Downloader">
+              Downloader
+            </option>
+
+            <option value="AI">
+              AI
+            </option>
+
+          </select>
+        </label>
+
+
+        <!-- PREFIX -->
+        <label>
+          Prefix
+
+          <input
+            id="prefix"
+            type="text"
+            placeholder="Contoh: ."
+            maxlength="3"
+            autocomplete="off"
+          >
+
+          <small>
+            Contoh command: .menu
+          </small>
+        </label>
+
+      </div>
+
+
+      <!-- FOTO BOT -->
+      <div class="upload-section">
+
+        <label>
+          Foto Bot
+
+          <input
+            id="photo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+          >
+
+          <small id="photoName">
+            PNG / JPG / WEBP • Maksimal 3 MB
+          </small>
+        </label>
+
+
+        <!-- PREVIEW -->
+        <div
+          class="preview"
+          id="preview"
+        >
+
+          <div class="preview-image">
+            <img
+              id="previewImage"
+              alt="Preview Foto Bot"
             >
-                <!-- Case akan dimuat otomatis dari case.json -->
-            </div>
+          </div>
+
+          <div class="preview-info">
+
+            <strong>
+              Preview Foto Bot
+            </strong>
+
+            <small>
+              Foto ini akan dimasukkan
+              ke dalam bot hasil generate.
+            </small>
+
+          </div>
+
+        </div>
+
+      </div>
 
 
-            <!-- CREATE -->
-            <button
-                type="button"
-                id="create"
-            >
-                🚀 CREATE BOT & DOWNLOAD
-            </button>
+      <!-- CASE -->
+      <div class="case-header">
+
+        <div>
+          <h2>📦 Case / Fitur</h2>
+
+          <p>
+            Pilih fitur yang ingin dimasukkan
+            ke bot hasil generate.
+          </p>
+        </div>
+
+      </div>
 
 
-            <!-- STATUS -->
-            <p
-                id="status"
-                role="status"
-                aria-live="polite"
-            ></p>
+      <!-- SEARCH CASE -->
+      <div class="bar">
 
-        </section>
+        <input
+          id="search"
+          type="search"
+          placeholder="🔎 Cari case..."
+          autocomplete="off"
+        >
 
-    </main>
+        <button
+          id="all"
+          type="button"
+        >
+          ✓ Pilih Semua
+        </button>
+
+        <button
+          id="none"
+          type="button"
+        >
+          × Kosongkan
+        </button>
+
+      </div>
 
 
-    <script src="/script.js"></script>
+      <!-- LIST CASE -->
+      <div
+        id="cases"
+        class="cases"
+      >
+        <div class="empty">
+          Memuat case...
+        </div>
+      </div>
+
+
+      <!-- CREATE -->
+      <button
+        id="create"
+        type="button"
+      >
+        🚀 CREATE BOT & DOWNLOAD
+      </button>
+
+
+      <!-- STATUS -->
+      <p
+        id="status"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+    </section>
+
+  </main>
+
+
+  <script src="/script.js"></script>
 
 </body>
 </html>
